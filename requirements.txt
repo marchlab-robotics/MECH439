@@ -1,0 +1,14 @@
+matplotlib
+numpy==1.26.4
+scipy
+pandas
+jupyter
+
+opencv-contrib-python
+imutils
+open3d
+
+urdf_parser_py
+pybullet==3.2.6
+
+pyrealsense2
