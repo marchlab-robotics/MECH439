@@ -69,23 +69,7 @@ class RealSense(CameraInterface):
     def depth_scale(self):
         return self._depth_scale
 
-
-    def advanced_mode(self):
-        DS5_product_ids = ["0AD1", "0AD2", "0AD3", "0AD4", "0AD5", "0AF6", "0AFE", "0AFF", "0B00", "0B01", "0B03",
-                           "0B07", "0B3A", "0B5C", "0B5B"]
-        ctx = rs.context()
-        ds5_dev = rs.device()
-        devices = ctx.query_devices()
-        for dev in devices:
-            if dev.supports(rs.camera_info.product_id) and str(
-                    dev.get_info(rs.camera_info.product_id)) in DS5_product_ids:
-                if dev.supports(rs.camera_info.name):
-                    print("Found device that supports advanced mode:", dev.get_info(rs.camera_info.name))
-                    return dev
-            raise Exception("No D400 product line device that supports advanced mode was found")
-
-
-    def initialize(self, resolution_color=None, resolution_depth=None):
+    def initialize(self, resolution_color: tuple, resolution_depth: tuple):
         print(self.__BoldText + self.__BlueText + 'Start streaming...' + self.__BlackText + self.__DefaultText)
 
         self.resolution_color = resolution_color
@@ -109,25 +93,6 @@ class RealSense(CameraInterface):
 
         print(self.__BoldText + "Device Line: " + self.__DefaultText + "{}".format(self.product_line))
         print(self.__BoldText + "Device SN: " + self.__DefaultText + "{}".format(self.product_id))
-
-        # if self.product_line == 'D400':
-        #     dev = self.advanced_mode()
-        #     advnc_mode = rs.rs400_advanced_mode(dev)
-        #     print("Advanced mode is", "enabled" if advnc_mode.is_enabled() else "disabled")
-        #
-        #     # Get each control's current value
-        #     print("Depth Control: \n", advnc_mode.get_depth_control())
-        #     print("RSM: \n", advnc_mode.get_rsm())
-        #     print("RAU Support Vector Control: \n", advnc_mode.get_rau_support_vector_control())
-        #     print("Color Control: \n", advnc_mode.get_color_control())
-        #     print("RAU Thresholds Control: \n", advnc_mode.get_rau_thresholds_control())
-        #     print("SLO Color Thresholds Control: \n", advnc_mode.get_slo_color_thresholds_control())
-        #     print("SLO Penalty Control: \n", advnc_mode.get_slo_penalty_control())
-        #     print("HDAD: \n", advnc_mode.get_hdad())
-        #     print("Color Correction: \n", advnc_mode.get_color_correction())
-        #     print("Depth Table: \n", advnc_mode.get_depth_table())
-        #     print("Auto Exposure Control: \n", advnc_mode.get_ae_control())
-        #     print("Census: \n", advnc_mode.get_census())
 
         # Set stream resolution
         self._config.enable_stream(rs.stream.color, self.resolution_color[0], self.resolution_color[1],
@@ -156,21 +121,8 @@ class RealSense(CameraInterface):
         cx, cy = color_intrinsics.ppx, color_intrinsics.ppy
 
         self._camera_matrix = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
-
-        # Define filters
-        self._colorizer = rs.colorizer()
-
-        self._decimation_filter = rs.decimation_filter()
-        self._decimation_filter.set_option(rs.option.filter_magnitude, 4)
-
-        self._spatial_filter = rs.spatial_filter()
-        self._spatial_filter.set_option(rs.option.filter_magnitude, 5)
-        self._spatial_filter.set_option(rs.option.filter_smooth_alpha, 1)
-        self._spatial_filter.set_option(rs.option.filter_smooth_delta, 50)
-        self._spatial_filter.set_option(rs.option.holes_fill, 3)
-
-        self._hole_filling_filter = rs.hole_filling_filter()
-
+        self._fx = fx
+        self._fy = fy
 
         # Get align frame
         align_to = rs.stream.color
@@ -180,7 +132,7 @@ class RealSense(CameraInterface):
 
         return
 
-    def get_config(self):
+    def get_config(self) -> [np.ndarray, np.ndarray, float]:
 
         return self.camera_matrix, self.distCoeffs, self.depth_scale
 
@@ -190,7 +142,7 @@ class RealSense(CameraInterface):
 
         return
 
-    def get_color(self, order='cv'):
+    def get_color(self, order: str = 'cv') -> np.ndarray:
 
         frame = self._pipeline.wait_for_frames()
         frame = self._align_frame.process(frame)  ## get aligned frame
@@ -203,7 +155,7 @@ class RealSense(CameraInterface):
         else:
             return color_image
 
-    def get_depth(self, order='cv'):
+    def get_depth(self, order: str = 'cv') -> [np.ndarray, np.ndarray]:
 
         frame = self._pipeline.wait_for_frames()
         frame = self._align_frame.process(frame)  ## get aligned frame
@@ -220,7 +172,7 @@ class RealSense(CameraInterface):
             return depth_map, depth_image
 
 
-    def get_color_depth(self, order='cv'):
+    def get_color_depth(self, order: str = 'cv', clipping_depth: float = None) -> [np.ndarray, np.ndarray, np.ndarray]:
 
         frame = self._pipeline.wait_for_frames()
         frame = self._align_frame.process(frame)  ## get aligned frame
@@ -229,11 +181,16 @@ class RealSense(CameraInterface):
         color_image = np.asanyarray(color_frame.get_data())
 
         depth_frame = frame.get_depth_frame()
-        depth_frame = self._decimation_filter.process(depth_frame)
+        # depth_frame = self._decimation_filter.process(depth_frame)
         # depth_frame = self._spatial_filter.process(depth_frame)
         # depth_frame = self._hole_filling_filter.process(depth_frame)
 
         depth_map = np.asanyarray(depth_frame.get_data())*self.depth_scale
+
+        if clipping_depth is not None:
+            depth_threshold = clipping_depth
+            depth_image_3d = np.dstack((depth_map, depth_map, depth_map))  # depth image is 1 channel, color is 3 channels
+            color_image = np.where((depth_image_3d > depth_threshold) | (depth_image_3d <= 0), 153, color_image)
 
         # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
         depth_image = cv2.applyColorMap(cv2.convertScaleAbs(depth_map, alpha=0.05/self.depth_scale), cv2.COLORMAP_JET)
@@ -242,8 +199,3 @@ class RealSense(CameraInterface):
             return color_image[:, :, ::-1], depth_map, depth_image[:, :, ::-1]
         else:
             return color_image, depth_map, depth_image
-
-
-
-
-

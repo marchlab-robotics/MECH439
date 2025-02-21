@@ -7,9 +7,10 @@ import cv2
 import imutils
 
 from utils.Toolbox import *
-from utils.Camera.realsense import RealSense, D455_DEFAULT_COLOR, D455_DEFAULT_DEPTH
+from utils.Camera.realsense import RealSense, D455_DEFAULT_COLOR, D455_DEFAULT_DEPTH, L515_DEFAULT_DEPTH, L515_DEFAULT_COLOR
 
-REALSENSE_SERIAL = "141322251060"
+# REALSENSE_SERIAL = "141322251060"
+REALSENSE_SERIAL = "f1371347"
 
 
 def nothing(x):
@@ -18,11 +19,7 @@ def nothing(x):
 if __name__ == '__main__':
 
     cam = RealSense(serial=REALSENSE_SERIAL)
-    cam.initialize(resolution_color=D455_DEFAULT_COLOR, resolution_depth=D455_DEFAULT_DEPTH)
-
-    ballLower = (90, 64, 68)
-    ballUpper = (112, 160, 255)
-
+    cam.initialize(resolution_color=L515_DEFAULT_COLOR, resolution_depth=L515_DEFAULT_DEPTH)
     cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
 
     cv2.createTrackbar('HMin', 'RealSense', 0, 179, nothing)  # Hue is from 0-179 for Opencv

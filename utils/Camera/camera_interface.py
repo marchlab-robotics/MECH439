@@ -4,7 +4,7 @@ from abc import *
 class CameraInterface(metaclass=ABCMeta):
 
     @abstractmethod
-    def initialize(self):
+    def initialize(self, *args, **kwargs):
         pass
 
     @abstractmethod
@@ -16,13 +16,13 @@ class CameraInterface(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_color(self):
+    def get_color(self, *args, **kwargs):
         pass
 
     @abstractmethod
-    def get_depth(self):
+    def get_depth(self, *args, **kwargs):
         pass
 
     @abstractmethod
-    def get_color_depth(self):
+    def get_color_depth(self, *args, **kwargs):
         pass
