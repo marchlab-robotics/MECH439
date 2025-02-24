@@ -84,15 +84,15 @@ if __name__ == '__main__':
     cam = RealSense(serial=REALSENSE_SERIAL)
     cam.initialize(resolution_color=L515_DEFAULT_COLOR, resolution_depth=L515_DEFAULT_DEPTH)
 
-    ballLower = (90, 70, 80)
-    ballUpper = (127, 175, 194)
+    ballLower = (0, 108, 175)
+    ballUpper = (24, 255, 255)
 
     cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
 
     state_filtered = None # [x, y, r, xc, xy]
     z_filtered = None
-    beta = 0.95
-    ball_diameter = 0.03 # 3cm ball
+    beta = 0.80
+    ball_diameter = 0.05 # 3cm ball
     state_filtered_que = [None] * 30
 
     num_memory = 1 # need to implement?
@@ -101,10 +101,11 @@ if __name__ == '__main__':
     while True:
         ts = time.time()
 
-        img_rgb, map_depth, img_depth = cam.get_color_depth('cv', clipping_depth=2.0)
+        # img_rgb, map_depth, img_depth = cam.get_color_depth('cv', clipping_depth=2.0)
+        img_rgb, map_depth, img_depth = cam.get_color_depth('cv')
         # img_rgb = cv2.resize(img_rgb, dsize=(320, 180), interpolation=cv2.INTER_AREA)
 
-        img_blur = cv2.GaussianBlur(img_rgb, (5, 5), 0)
+        img_blur = cv2.GaussianBlur(img_rgb, (11, 11), 0)
         img_hsv = cv2.cvtColor(img_blur, cv2.COLOR_BGR2HSV)
 
         mask = cv2.inRange(img_hsv, ballLower, ballUpper)

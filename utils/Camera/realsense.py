@@ -190,7 +190,8 @@ class RealSense(CameraInterface):
         if clipping_depth is not None:
             depth_threshold = clipping_depth
             depth_image_3d = np.dstack((depth_map, depth_map, depth_map))  # depth image is 1 channel, color is 3 channels
-            color_image = np.where((depth_image_3d > depth_threshold) | (depth_image_3d <= 0), 153, color_image)
+            # color_image = np.where((depth_image_3d > depth_threshold) | (depth_image_3d <= 0), 153, color_image)
+            color_image = np.where((depth_image_3d > depth_threshold), 153, color_image)
 
         # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
         depth_image = cv2.applyColorMap(cv2.convertScaleAbs(depth_map, alpha=0.05/self.depth_scale), cv2.COLORMAP_JET)
